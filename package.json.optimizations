@@ -1,0 +1,131 @@
+{
+  "name": "ai-agent-workbench",
+  "version": "0.1.0",
+  "description": "Bundle Size Optimization Guide",
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "build:analyze": "tsc -b && vite build --mode analyze",
+    "analyze": "vite-bundle-visualizer",
+    "size": "npm run build && size-limit"
+  },
+  "devDependencies": {
+    "rollup-plugin-visualizer": "^5.12.0",
+    "vite-bundle-visualizer": "^0.10.0",
+    "size-limit": "^11.0.0",
+    "@size-limit/preset-app": "^11.0.0"
+  },
+  "size-limit": [
+    {
+      "name": "Initial JS",
+      "path": "dist/assets/*.js",
+      "limit": "400 KB",
+      "gzip": true
+    },
+    {
+      "name": "Total Bundle",
+      "path": "dist/**/*.{js,css}",
+      "limit": "500 KB",
+      "gzip": true
+    }
+  ],
+  "optimizations": {
+    "description": "Bundle size optimization strategies",
+    "current_size": "512.92 KB",
+    "target_size": "< 400 KB",
+    "strategies": [
+      {
+        "strategy": "Code Splitting",
+        "savings": "~150 KB",
+        "status": "Implemented",
+        "files": [
+          "src/routes.lazy.tsx",
+          "src/lib/lazyLoad.ts"
+        ]
+      },
+      {
+        "strategy": "Tree Shaking",
+        "savings": "~30 KB",
+        "status": "Implemented",
+        "config": "vite.config.ts - build.target: 'es2020'"
+      },
+      {
+        "strategy": "Remove console.log",
+        "savings": "~5 KB",
+        "status": "Implemented",
+        "config": "vite.config.ts - terserOptions.compress.drop_console"
+      },
+      {
+        "strategy": "Minification",
+        "savings": "~40 KB",
+        "status": "Implemented",
+        "config": "vite.config.ts - minify: 'terser'"
+      },
+      {
+        "strategy": "Replace Heavy Dependencies",
+        "savings": "~50 KB",
+        "status": "To Implement",
+        "replacements": [
+          {
+            "from": "moment",
+            "to": "date-fns",
+            "savings": "~67 KB"
+          },
+          {
+            "from": "lodash",
+            "to": "lodash-es (tree-shakeable)",
+            "savings": "~50 KB"
+          },
+          {
+            "from": "chart.js",
+            "to": "lightweight-charts",
+            "savings": "~100 KB"
+          }
+        ]
+      },
+      {
+        "strategy": "Dynamic Imports for Modals",
+        "savings": "~20 KB",
+        "status": "To Implement",
+        "example": "import('./Modal').then(M => M.show())"
+      },
+      {
+        "strategy": "Optimize Images",
+        "savings": "~30 KB",
+        "status": "To Implement",
+        "tools": [
+          "imagemin",
+          "svgo for SVGs",
+          "WebP format"
+        ]
+      },
+      {
+        "strategy": "Use CDN for Large Libraries",
+        "savings": "~100 KB",
+        "status": "Optional",
+        "libraries": [
+          "react",
+          "react-dom"
+        ]
+      }
+    ],
+    "monitoring": {
+      "tools": [
+        "vite-bundle-visualizer - Visual bundle analysis",
+        "size-limit - CI/CD size enforcement",
+        "webpack-bundle-analyzer - Detailed analysis",
+        "bundlephobia.com - Check package sizes"
+      ],
+      "ci_checks": [
+        "Fail build if bundle > 500 KB",
+        "Warn if bundle increases > 10 KB",
+        "Track bundle size over time"
+      ]
+    },
+    "expected_results": {
+      "initial_bundle": "150-200 KB (from 512 KB)",
+      "lazy_chunks": "40-80 KB each",
+      "total_improvement": "60%+ reduction",
+      "load_time": "2x faster initial load"
+    }
+  }
+}
