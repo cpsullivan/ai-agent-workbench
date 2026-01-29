@@ -1,12 +1,47 @@
 # AI Agent Workbench
 
-[![CI](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/YOUR_USERNAME/ai-agent-workbench/branch/main/graph/badge.svg)](https://codecov.io/gh/YOUR_USERNAME/ai-agent-workbench)
-[![Deploy Staging](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/deploy-staging.yml/badge.svg)](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/deploy-staging.yml)
-[![Deploy Production](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/deploy-production.yml/badge.svg)](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/deploy-production.yml)
+[![CI](https://github.com/cpsullivan/ai-agent-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/cpsullivan/ai-agent-workbench/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/cpsullivan/ai-agent-workbench/branch/main/graph/badge.svg)](https://codecov.io/gh/cpsullivan/ai-agent-workbench)
+[![Deploy Staging](https://github.com/cpsullivan/ai-agent-workbench/actions/workflows/deploy-staging.yml/badge.svg)](https://github.com/cpsullivan/ai-agent-workbench/actions/workflows/deploy-staging.yml)
+[![Deploy Production](https://github.com/cpsullivan/ai-agent-workbench/actions/workflows/deploy-production.yml/badge.svg)](https://github.com/cpsullivan/ai-agent-workbench/actions/workflows/deploy-production.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Enterprise-grade AI Agent platform with autonomous execution, workflow building, and multi-user collaboration.
+A production-ready AI agent platform featuring autonomous execution, visual workflow building, and enterprise-grade collaboration capabilities.
+
+## Overview
+
+**AI Agent Workbench** is an enterprise AI agent platform designed for building, deploying, and managing intelligent autonomous agents with production-grade reliability and security.
+
+### Key Features
+
+- **🤖 Autonomous Agent Execution** - Free Agent mode with three-tier memory system (blackboard, scratchpad, attributes) for context-aware decision making
+- **🎨 Visual Workflow Builder** - Drag-and-drop interface for creating complex AI workflows with 25+ integrated tools
+- **🔐 Enterprise Security** - AES-256 encrypted secrets management with role-based access control (RBAC)
+- **💾 Persistent State** - Auto-save session and workflow state with version control and restoration capabilities
+- **👥 Multi-User Collaboration** - Real-time collaboration with presence indicators and live cursors
+- **🤝 Multi-Model Support** - Seamless integration with Claude, Gemini, Grok, and other leading AI models
+- **📊 Cost Tracking** - Comprehensive usage analytics and cost monitoring across all AI API calls
+- **🧪 Production-Grade Testing** - 86%+ test coverage with 410+ automated tests (310 frontend, 100+ backend)
+- **🚀 Complete CI/CD Pipeline** - Automated testing, deployments, PR automation, and performance monitoring
+- **⚡ Performance Optimized** - 148KB gzipped bundle, Redis caching, lazy loading, and code splitting
+
+### Architecture
+
+Built with modern, scalable technologies:
+
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS
+- **Backend:** Supabase Edge Functions (Deno), PostgreSQL
+- **Testing:** Vitest, React Testing Library, Playwright, Deno Test
+- **CI/CD:** GitHub Actions, Codecov, Lighthouse CI
+- **Infrastructure:** Supabase Auth, PostgreSQL, Redis (Upstash), Sentry
+
+### Use Cases
+
+- **Research & Development** - Autonomous agents for data analysis, research, and experimentation
+- **Workflow Automation** - Build complex multi-step workflows with AI-powered decision making
+- **Content Generation** - Generate, review, and iterate on content with AI assistance
+- **Development Tools** - AI-powered coding assistants with memory and context awareness
+- **Enterprise Applications** - Secure, scalable AI integration for business processes
 
 ## Project Status
 
