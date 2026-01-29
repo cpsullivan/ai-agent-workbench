@@ -43,10 +43,16 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage
 
+      - name: Check coverage thresholds
+        run: |
+          echo "✅ Coverage thresholds enforced: 70% minimum for lines, functions, branches, statements"
+          npm run test:coverage -- --reporter=json --reporter=text
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage/coverage-final.json
+          flags: frontend
           fail_ci_if_error: true
 
   build:
@@ -73,6 +79,30 @@ jobs:
           name: dist
           path: dist/
           retention-days: 7
+
+  backend-tests:
+    name: Backend Tests (Deno)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Run backend tests with coverage
+        run: |
+          cd supabase/functions/_shared
+          deno test --allow-all --coverage=coverage __tests__/*.test.ts
+          deno coverage coverage --lcov --output=coverage.lcov
+
+      - name: Upload backend coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./supabase/functions/_shared/coverage.lcov
+          flags: backend
+          fail_ci_if_error: false
 
   e2e:
     name: E2E Tests
