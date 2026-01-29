@@ -1,0 +1,114 @@
+# Auto-labeling configuration for pull requests
+# Labels are automatically applied based on files changed
+
+# Documentation changes
+📝 documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+
+# Frontend changes
+🎨 frontend:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/**/*.tsx'
+      - 'src/**/*.ts'
+      - 'src/**/*.css'
+      - 'src/**/*.scss'
+      - 'src/components/**/*'
+      - 'src/pages/**/*'
+      - 'src/hooks/**/*'
+
+# Backend changes
+⚙️ backend:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'supabase/functions/**/*'
+      - 'supabase/migrations/**/*'
+
+# Test changes
+✅ tests:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.test.ts'
+      - '**/*.test.tsx'
+      - '**/*.spec.ts'
+      - '**/*.spec.tsx'
+      - 'src/test/**/*'
+      - 'tests/**/*'
+
+# CI/CD changes
+🔧 ci/cd:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**/*'
+      - 'scripts/**/*'
+      - '.gitlab-ci.yml'
+      - 'azure-pipelines.yml'
+
+# Configuration changes
+⚙️ configuration:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '*.config.js'
+      - '*.config.ts'
+      - '.eslintrc*'
+      - '.prettierrc*'
+      - 'tsconfig*.json'
+      - 'package.json'
+      - 'package-lock.json'
+
+# Dependencies changes
+📦 dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'yarn.lock'
+      - 'pnpm-lock.yaml'
+
+# Authentication & security
+🔐 auth/security:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/hooks/useAuth.ts'
+      - 'src/hooks/useSecrets.ts'
+      - 'src/components/Auth/**/*'
+      - 'supabase/functions/_shared/auth.ts'
+      - 'supabase/functions/_shared/rbac.ts'
+      - 'supabase/functions/_shared/encryption.ts'
+
+# Database changes
+🗄️ database:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'supabase/migrations/**/*'
+      - 'supabase/seed.sql'
+
+# Performance
+⚡ performance:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/hooks/useDebounce.ts'
+      - 'src/lib/lazyLoad.tsx'
+      - 'supabase/functions/_shared/cache.ts'
+      - 'vite.config.ts'
+
+# Bug fixes
+🐛 bug:
+  - changed-files:
+    - any-glob-to-any-file:
+      - head-branch: ['^fix/', 'fix-']
+
+# New features
+✨ feature:
+  - changed-files:
+    - any-glob-to-any-file:
+      - head-branch: ['^feat/', 'feature-']
+
+# Refactoring
+♻️ refactor:
+  - changed-files:
+    - any-glob-to-any-file:
+      - head-branch: ['^refactor/']

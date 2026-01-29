@@ -1,0 +1,374 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  pr-title-check:
+    name: PR Title Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title format
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Require PR titles to follow conventional commits format
+          # Examples: feat: add feature, fix: bug fix, docs: update readme
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+          subjectPattern: ^[A-Z].+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            didn't match the configured pattern. Please ensure that the subject
+            starts with an uppercase character.
+
+  bundle-size-check:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Check bundle size
+        id: bundle-size
+        run: |
+          # Get current bundle size
+          BUNDLE_SIZE=$(du -sk dist | cut -f1)
+          BUNDLE_SIZE_MB=$(echo "scale=2; $BUNDLE_SIZE / 1024" | bc)
+
+          # Maximum allowed bundle size (2 MB = 2048 KB)
+          MAX_SIZE=2048
+
+          echo "Current bundle size: ${BUNDLE_SIZE}KB (${BUNDLE_SIZE_MB}MB)"
+          echo "Maximum allowed size: ${MAX_SIZE}KB (2MB)"
+
+          # Calculate percentage of max
+          PERCENTAGE=$(echo "scale=2; ($BUNDLE_SIZE / $MAX_SIZE) * 100" | bc)
+          echo "Using ${PERCENTAGE}% of maximum bundle size"
+
+          # Store for comment
+          echo "bundle_size=${BUNDLE_SIZE}" >> $GITHUB_OUTPUT
+          echo "bundle_size_mb=${BUNDLE_SIZE_MB}" >> $GITHUB_OUTPUT
+          echo "max_size=${MAX_SIZE}" >> $GITHUB_OUTPUT
+          echo "percentage=${PERCENTAGE}" >> $GITHUB_OUTPUT
+
+          # Check if bundle size exceeds maximum
+          if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
+            echo "❌ Bundle size ${BUNDLE_SIZE}KB exceeds maximum ${MAX_SIZE}KB"
+            echo "status=❌ Exceeds limit" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✅ Bundle size is within limits"
+            echo "status=✅ Within limit" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get main branch bundle size
+        id: main-bundle
+        run: |
+          # Checkout main branch
+          git fetch origin main
+          git checkout origin/main
+
+          # Install and build
+          npm ci
+          npm run build
+
+          # Get main branch bundle size
+          MAIN_SIZE=$(du -sk dist | cut -f1)
+          MAIN_SIZE_MB=$(echo "scale=2; $MAIN_SIZE / 1024" | bc)
+
+          echo "main_size=${MAIN_SIZE}" >> $GITHUB_OUTPUT
+          echo "main_size_mb=${MAIN_SIZE_MB}" >> $GITHUB_OUTPUT
+
+      - name: Calculate size difference
+        id: size-diff
+        run: |
+          CURRENT=${{ steps.bundle-size.outputs.bundle_size }}
+          MAIN=${{ steps.main-bundle.outputs.main_size }}
+
+          DIFF=$((CURRENT - MAIN))
+          DIFF_PERCENTAGE=$(echo "scale=2; ($DIFF / $MAIN) * 100" | bc)
+
+          echo "diff=${DIFF}" >> $GITHUB_OUTPUT
+          echo "diff_percentage=${DIFF_PERCENTAGE}" >> $GITHUB_OUTPUT
+
+          if [ $DIFF -gt 0 ]; then
+            echo "trend=📈 Increased" >> $GITHUB_OUTPUT
+          elif [ $DIFF -lt 0 ]; then
+            echo "trend=📉 Decreased" >> $GITHUB_OUTPUT
+          else
+            echo "trend=➡️ No change" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment bundle size on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const bundleSize = '${{ steps.bundle-size.outputs.bundle_size }}';
+            const bundleSizeMB = '${{ steps.bundle-size.outputs.bundle_size_mb }}';
+            const mainSize = '${{ steps.main-bundle.outputs.main_size }}';
+            const mainSizeMB = '${{ steps.main-bundle.outputs.main_size_mb }}';
+            const maxSize = '${{ steps.bundle-size.outputs.max_size }}';
+            const percentage = '${{ steps.bundle-size.outputs.percentage }}';
+            const status = '${{ steps.bundle-size.outputs.status }}';
+            const diff = '${{ steps.size-diff.outputs.diff }}';
+            const diffPercentage = '${{ steps.size-diff.outputs.diff_percentage }}';
+            const trend = '${{ steps.size-diff.outputs.trend }}';
+
+            const comment = `## 📦 Bundle Size Report
+
+            | Metric | Value |
+            |--------|-------|
+            | **Current Size** | ${bundleSize}KB (${bundleSizeMB}MB) |
+            | **Main Branch Size** | ${mainSize}KB (${mainSizeMB}MB) |
+            | **Difference** | ${trend} ${diff}KB (${diffPercentage}%) |
+            | **Maximum Allowed** | ${maxSize}KB (2MB) |
+            | **Usage** | ${percentage}% of maximum |
+            | **Status** | ${status} |
+
+            ${diff > 0 ? '⚠️ This PR increases the bundle size.' : '✅ This PR does not increase the bundle size.'}
+
+            <details>
+            <summary>Bundle Size Guidelines</summary>
+
+            - Maximum bundle size: 2MB (2048KB)
+            - Current usage: ${percentage}%
+            - Keep bundles small for faster load times
+            - Consider code splitting for large increases
+            - Use lazy loading for non-critical components
+            </details>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  coverage-diff-check:
+    name: Coverage Diff Comment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Get coverage summary
+        id: coverage
+        run: |
+          # Parse coverage-summary.json
+          LINES=$(jq -r '.total.lines.pct' coverage/coverage-summary.json)
+          BRANCHES=$(jq -r '.total.branches.pct' coverage/coverage-summary.json)
+          FUNCTIONS=$(jq -r '.total.functions.pct' coverage/coverage-summary.json)
+          STATEMENTS=$(jq -r '.total.statements.pct' coverage/coverage-summary.json)
+
+          echo "lines=${LINES}" >> $GITHUB_OUTPUT
+          echo "branches=${BRANCHES}" >> $GITHUB_OUTPUT
+          echo "functions=${FUNCTIONS}" >> $GITHUB_OUTPUT
+          echo "statements=${STATEMENTS}" >> $GITHUB_OUTPUT
+
+          # Overall status
+          THRESHOLD=70
+          if (( $(echo "$LINES >= $THRESHOLD" | bc -l) )) && \
+             (( $(echo "$BRANCHES >= $THRESHOLD" | bc -l) )) && \
+             (( $(echo "$FUNCTIONS >= $THRESHOLD" | bc -l) )) && \
+             (( $(echo "$STATEMENTS >= $THRESHOLD" | bc -l) )); then
+            echo "status=✅ Passes 70% threshold" >> $GITHUB_OUTPUT
+          else
+            echo "status=❌ Below 70% threshold" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment coverage on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const lines = '${{ steps.coverage.outputs.lines }}';
+            const branches = '${{ steps.coverage.outputs.branches }}';
+            const functions = '${{ steps.coverage.outputs.functions }}';
+            const statements = '${{ steps.coverage.outputs.statements }}';
+            const status = '${{ steps.coverage.outputs.status }}';
+
+            const getEmoji = (value) => {
+              const num = parseFloat(value);
+              if (num >= 90) return '🟢';
+              if (num >= 70) return '🟡';
+              return '🔴';
+            };
+
+            const comment = `## 📊 Test Coverage Report
+
+            | Metric | Coverage | Status |
+            |--------|----------|--------|
+            | **Lines** | ${lines}% | ${getEmoji(lines)} |
+            | **Branches** | ${branches}% | ${getEmoji(branches)} |
+            | **Functions** | ${functions}% | ${getEmoji(functions)} |
+            | **Statements** | ${statements}% | ${getEmoji(statements)} |
+
+            **Overall Status:** ${status}
+
+            <details>
+            <summary>Coverage Thresholds</summary>
+
+            - 🟢 Excellent: ≥90%
+            - 🟡 Good: 70-89%
+            - 🔴 Below threshold: <70%
+
+            All metrics must be ≥70% for CI to pass.
+            </details>
+
+            [View full coverage report on Codecov](https://codecov.io/gh/${{ github.repository }}/pull/${{ github.event.pull_request.number }})`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  auto-labeling:
+    name: Auto-Label PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Auto-label based on files changed
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+
+      - name: Label based on PR size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Calculate total changes
+            let additions = 0;
+            let deletions = 0;
+
+            files.forEach(file => {
+              additions += file.additions;
+              deletions += file.deletions;
+            });
+
+            const totalChanges = additions + deletions;
+
+            // Determine size label
+            let sizeLabel;
+            if (totalChanges < 10) {
+              sizeLabel = 'size/XS';
+            } else if (totalChanges < 100) {
+              sizeLabel = 'size/S';
+            } else if (totalChanges < 500) {
+              sizeLabel = 'size/M';
+            } else if (totalChanges < 1000) {
+              sizeLabel = 'size/L';
+            } else {
+              sizeLabel = 'size/XL';
+            }
+
+            // Add size label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: [sizeLabel]
+            });
+
+            console.log(`Added label: ${sizeLabel} (${totalChanges} changes)`);
+
+      - name: Label breaking changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || '';
+            const prTitle = context.payload.pull_request.title || '';
+
+            // Check for breaking change indicators
+            const hasBreakingChange =
+              prTitle.includes('!:') ||
+              prBody.toLowerCase().includes('breaking change') ||
+              prBody.toLowerCase().includes('breaking:');
+
+            if (hasBreakingChange) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['⚠️ breaking-change']
+              });
+
+              console.log('Added breaking-change label');
+            }
+
+      - name: Label WIP PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prTitle = context.payload.pull_request.title || '';
+            const isDraft = context.payload.pull_request.draft;
+
+            const isWIP =
+              isDraft ||
+              prTitle.toLowerCase().startsWith('wip:') ||
+              prTitle.toLowerCase().startsWith('draft:') ||
+              prTitle.toLowerCase().includes('[wip]') ||
+              prTitle.toLowerCase().includes('[draft]');
+
+            if (isWIP) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['🚧 work-in-progress']
+              });
+
+              console.log('Added work-in-progress label');
+            }
