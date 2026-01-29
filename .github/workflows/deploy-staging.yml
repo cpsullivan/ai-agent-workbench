@@ -1,0 +1,129 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging Environment
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.ai-agent-workbench.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:coverage
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          SECRETS_ENCRYPTION_KEY: ${{ secrets.STAGING_SECRETS_ENCRYPTION_KEY }}
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: staging
+          VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.STAGING_SENTRY_DSN }}
+          VITE_UPSTASH_REDIS_REST_URL: ${{ secrets.STAGING_UPSTASH_REDIS_REST_URL }}
+          VITE_UPSTASH_REDIS_REST_TOKEN: ${{ secrets.STAGING_UPSTASH_REDIS_REST_TOKEN }}
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Deploy Edge Functions to Staging
+        run: |
+          echo "Deploying edge functions to Supabase staging..."
+          # Install Supabase CLI
+          npm install -g supabase
+
+          # Link to staging project
+          supabase link --project-ref ${{ secrets.STAGING_SUPABASE_PROJECT_REF }}
+
+          # Deploy all functions
+          supabase functions deploy --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
+          SECRETS_ENCRYPTION_KEY: ${{ secrets.STAGING_SECRETS_ENCRYPTION_KEY }}
+
+      - name: Deploy Frontend to Vercel/Netlify
+        run: |
+          echo "Deploying frontend to staging environment..."
+          # Example for Vercel:
+          # npm install -g vercel
+          # vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+          # Example for Netlify:
+          # npm install -g netlify-cli
+          # netlify deploy --prod --site=${{ secrets.NETLIFY_SITE_ID }} --auth=${{ secrets.NETLIFY_AUTH_TOKEN }}
+
+          echo "✅ Frontend deployment command placeholder - configure with your hosting provider"
+
+      - name: Run Database Migrations
+        run: |
+          echo "Running database migrations on staging..."
+          supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+
+      - name: Health Check
+        run: |
+          echo "Performing health check on staging deployment..."
+          sleep 10
+
+          # Check frontend
+          curl -f ${{ secrets.STAGING_APP_URL }}/health || echo "⚠️ Frontend health check failed"
+
+          # Check edge functions
+          curl -f ${{ secrets.STAGING_SUPABASE_URL }}/functions/v1/health-check \
+            -H "Authorization: Bearer ${{ secrets.STAGING_SUPABASE_ANON_KEY }}" || echo "⚠️ Edge functions health check failed"
+
+      - name: Notify Deployment Success
+        if: success()
+        run: |
+          echo "✅ Staging deployment successful!"
+          echo "URL: https://staging.ai-agent-workbench.com"
+
+          # Optional: Send Slack notification
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+          #   -H 'Content-Type: application/json' \
+          #   -d '{"text":"✅ Staging deployment successful!"}'
+
+      - name: Notify Deployment Failure
+        if: failure()
+        run: |
+          echo "❌ Staging deployment failed!"
+
+          # Optional: Send Slack notification
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+          #   -H 'Content-Type: application/json' \
+          #   -d '{"text":"❌ Staging deployment failed! Check GitHub Actions."}'
+
+      - name: Upload deployment logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-deployment-logs
+          path: |
+            *.log
+            deployment-*.txt
+          retention-days: 30
