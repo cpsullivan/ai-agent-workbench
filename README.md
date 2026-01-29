@@ -1,5 +1,11 @@
 # AI Agent Workbench
 
+[![CI](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/YOUR_USERNAME/ai-agent-workbench/branch/main/graph/badge.svg)](https://codecov.io/gh/YOUR_USERNAME/ai-agent-workbench)
+[![Deploy Staging](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/deploy-staging.yml/badge.svg)](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/deploy-staging.yml)
+[![Deploy Production](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/deploy-production.yml/badge.svg)](https://github.com/YOUR_USERNAME/ai-agent-workbench/actions/workflows/deploy-production.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Enterprise-grade AI Agent platform with autonomous execution, workflow building, and multi-user collaboration.
 
 ## Project Status
@@ -105,6 +111,97 @@ The application will be available at `http://localhost:5173`
 - `npm run test:coverage` - Generate coverage report
 - `npm run test:e2e` - Run E2E tests
 - `npm run test:e2e:ui` - Run E2E tests with UI
+
+## Testing & CI/CD
+
+### Test Coverage
+
+The project maintains **86%+ test coverage** with comprehensive testing across all critical modules:
+
+- **Frontend Tests:** 310+ test cases using Vitest + React Testing Library
+  - Authentication & authorization (OAuth, RBAC, permissions)
+  - Secrets management (encryption, access control)
+  - Session persistence (auto-save, restore)
+  - Workflow persistence (versioning, CRUD operations)
+
+- **Backend Tests:** 100+ test cases using Deno test framework
+  - Edge function authentication middleware
+  - Role-based access control (RBAC)
+  - AES-256 encryption & security
+  - Usage tracking & cost logging
+
+### Running Tests
+
+```bash
+# Run frontend tests
+npm run test
+
+# Run with coverage report
+npm run test:coverage
+
+# Run in watch mode
+npm run test:watch
+
+# Run E2E tests
+npm run test:e2e
+
+# Run backend tests (requires Deno)
+cd supabase/functions/_shared
+deno test --allow-all __tests__/*.test.ts
+```
+
+### CI Pipeline
+
+Every PR and push to `main`/`develop` triggers automated checks:
+
+1. **Lint** - ESLint code quality checks
+2. **Frontend Tests** - 310+ test cases with 86%+ coverage
+3. **Backend Tests** - Deno tests for edge functions
+4. **Build** - Production build verification
+5. **E2E Tests** - Playwright end-to-end tests
+
+**Coverage enforcement:** Builds fail if coverage drops below 70%.
+
+### Deployment Workflows
+
+#### Staging (Auto-Deploy)
+- **Trigger:** Push to `develop` branch
+- **Process:** Tests → Build → Deploy edge functions → Deploy frontend → Health checks
+- **URL:** `https://staging.ai-agent-workbench.com`
+
+#### Production (Manual Approval Required)
+- **Trigger:** Push to `main` branch or version tags
+- **Process:**
+  1. Pre-deployment checks (tests, lint, security audit, bundle size)
+  2. **Manual approval required** (reviewers notified)
+  3. Create deployment backup
+  4. Deploy edge functions + frontend
+  5. Run database migrations
+  6. Health checks + smoke tests
+  7. Automatic rollback on failure
+- **URL:** `https://ai-agent-workbench.com`
+
+### Deployment Setup
+
+See [DEPLOYMENT_SETUP_GUIDE.md](./DEPLOYMENT_SETUP_GUIDE.md) for complete instructions on:
+- Configuring GitHub environments
+- Setting up deployment secrets
+- Hosting provider integration
+- Rollback procedures
+
+### CI/CD Implementation Progress
+
+See [CICD_PROGRESS.md](./CICD_PROGRESS.md) for current implementation status.
+
+**Current Status:** 5/8 phases complete (62.5%)
+- ✅ Phase 1: Backend Tests Integration
+- ✅ Phase 2: Coverage Enforcement
+- ✅ Phase 3: GitHub Secrets Documentation
+- ✅ Phase 4: Test Environment Setup
+- ✅ Phase 5: Deployment Workflows
+- ⏸️ Phase 6: Status Badges (in progress)
+- ⏸️ Phase 7: PR Automation
+- ⏸️ Phase 8: Performance Monitoring
 
 ## Development Roadmap
 
